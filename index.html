@@ -622,7 +622,8 @@ function viewPerfil(){var m=S.me,L=NIVELES[m.lvl];
  reviewsBlock(m.reviews,"Tus reseñas")+
  sec("Tu cuenta",'<dl class="kv"><dt>Teléfono</dt><dd>+34 '+esc(m.phone||"")+'<br><span class="muted small">No lo ve ningún otro jugador</span></dd><dt>Avisos</dt><dd>En la app'+(m.notif&&m.notif.wa?' · WhatsApp':'')+(m.notif&&m.notif.sms?' · SMS':'')+'</dd></dl>',4)+
  '<button class="btn btn-ghost" data-act="logout">Cerrar sesión</button>'+
- '<p class="notice" style="margin-top:8px">Prototipo · <button class="link small" style="color:var(--muted)" data-act="reset">Reiniciar datos de prueba</button></p></div></div>';}
+ '<p class="notice" style="margin-top:8px">Prototipo · <button class="link small" style="color:var(--muted)" data-act="reset">Reiniciar datos de prueba</button></p>'+
+ '<button class="btn btn-ghost" style="margin-top:6px;border-color:var(--danger);color:var(--danger)" data-act="wipeask">Borrar mi cuenta y empezar de cero</button></div></div>';}
 /* ---------- Hojas (perfil completo, respuesta, unirse) ---------- */
 function sheet(html){document.getElementById("layer").innerHTML='<div class="scrim" data-act="closesheet"><div class="sheet wrap" role="dialog" aria-modal="true"><div class="grip"></div>'+html+'</div></div>';}
 var FBQ=[
@@ -792,6 +793,8 @@ document.addEventListener("click",function(e){var t=e.target.closest("[data-tab]
  else if(a==="simconf"){var g8=groupById(id);if(!g8.club)g8.club=g8.clubs[0];g8.members.forEach(function(m){g8.confirms[m.name]=true;});g8.stage="confirmado";g8.chat.push({who:g8.members[1].name,t:"¡Confirmado! Nos vemos en la pista."});save();toast("Partida confirmada");render();}
  else if(a==="played"){var g9=groupById(id);g9.stage="jugado";save();render();sheet('<div class="stack"><h2>¡Buena partida!</h2><p class="muted">¿Os gustaría jugar juntos cada semana? Estamos preparando los grupos fijos: os propondríamos día y hora cada semana y solo tendríais que confirmar.</p><button class="btn btn-lime" data-act="habyes">Sí, nos interesa</button><button class="btn btn-ghost" data-act="habno">No, gracias</button></div>');}
  else if(a==="logout"){S.me=null;S.view="home";save();render();}
+ else if(a==="wipeask"){sheet('<div class="stack"><h2>¿Empezar de cero?</h2><p class="small muted">Se borran tu cuenta, tus partidas y todo lo que has hecho en este móvil. Después podrás registrarte otra vez con el mismo teléfono.</p><button class="btn" style="background:var(--danger);color:#fff" data-act="wipe">Sí, borrar todo</button><button class="btn btn-ghost" data-act="closesheet">Cancelar</button></div>');}
+ else if(a==="wipe"){try{Object.keys(localStorage).forEach(function(k){if(/^padelx4/.test(k))localStorage.removeItem(k);});}catch(err){}S=seed();S.accounts={};S.me=null;S.view="home";tab="inicio";openGroupId=null;reg={};regStep=0;closeSheet();save();render();window.scrollTo(0,0);toast("Listo. Puedes empezar de cero.");}
  else if(a==="reset"){var keep=S.accounts;S=seed();S.accounts=keep;tab="jugadores";openGroupId=null;save();render();toast("Datos de demostración reiniciados");}
 });
 function onSet(t){var k=t.dataset.set,v=t.dataset.v;
