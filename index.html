@@ -693,10 +693,13 @@ document.addEventListener("click",function(e){var t=e.target.closest("[data-tab]
  else if(a==="regback"){if(S.view==="editar"){S.view="app";tab="perfil";}else if(regStep===0){S.view="home";}else{grabReg();regStep--;}render();window.scrollTo(0,0);}
  else if(a==="regnext"){grabReg();var err=regError();var el=document.getElementById("regerr");if(err==="SENDCODE"){sendCode();return;}if(err){if(typeof err==="string")err=[err];showErr("regerr",err[0],err[1]);return;}
   if(S.view==="editar")finishReg();else if(regStep<4){regStep++;render();window.scrollTo(0,0);}else finishReg();}
- else if(a==="geo"){var gk=t.dataset.k;if(!navigator.geolocation){toast("Tu navegador no deja ver la ubicación. Elige tu pueblo o barrio.");return;}t.disabled=true;t.textContent="Buscando tu ubicación…";
-  navigator.geolocation.getCurrentPosition(function(pos){var o=geoObj(gk);if(!o)return;var g={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"tu ubicación"};
-   if(!nearClubs(g,40).length){g={lat:GEO["València · Centro"][0],lng:GEO["València · Centro"][1],label:"València"};toast("Estás lejos de Valencia: te enseñamos los clubes de València.");}
-   setGeo(o,g);render();},function(){toast("No hemos podido ver tu ubicación. Elige tu pueblo o barrio.");render();},{timeout:9000,maximumAge:600000});}
+ else if(a==="geo"){var gk=t.dataset.k,done=false;var VLC={lat:GEO["València · Centro"][0],lng:GEO["València · Centro"][1],label:"València (ubicación de prueba)"};
+  var fin=function(g,msg){if(done)return;done=true;var o=geoObj(gk);if(!o)return;setGeo(o,g);render();if(msg)toast(msg);};
+  var fallback=function(){fin(VLC,"No hemos podido ver tu ubicación. Para la prueba te situamos en València; puedes cambiarlo.");};
+  if(!navigator.geolocation||!window.isSecureContext){fallback();return;}
+  t.disabled=true;t.textContent="Buscando tu ubicación…";setTimeout(fallback,8000);
+  try{navigator.geolocation.getCurrentPosition(function(pos){var g={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"tu ubicación"};
+   if(!nearClubs(g,40).length)fin(VLC,"Estás lejos de Valencia: para la prueba te situamos en València.");else fin(g);},fallback,{enableHighAccuracy:false,timeout:7000,maximumAge:600000});}catch(err){fallback();}}
  else if(a==="geoclear"){var go2=geoObj(t.dataset.k);go2.geo=null;go2.clubs=[];go2.zones=[];render();}
  else if(a==="addclub"){sheet('<form id="clubf" class="stack" data-k="'+t.dataset.k+'"><h2>Añade tu club</h2><div class="field"><label for="cn">Nombre del club</label><input class="input" id="cn" required></div><div class="field"><label for="ct">Pueblo o barrio</label><input class="input" id="ct"></div><div class="field"><label for="cz">Zona</label><select class="input" id="cz">'+COMARCAS.map(function(c){return c.z.map(function(z){return '<option'+(z===t.dataset.z?' selected':'')+'>'+esc(z)+'</option>';}).join("");}).join("")+'</select></div><button class="btn btn-ink" type="submit">Añadir</button><button class="btn btn-ghost" type="button" data-act="closesheet">Cancelar</button></form>');}
  else if(a==="verjug"){grabSearch();var d=S.searchDraft,er="";
