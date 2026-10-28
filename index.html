@@ -417,6 +417,10 @@ var GEO={"Bétera":[39.591,-0.462],"San Antonio de Benagéber":[39.561,-0.497],"
  "Quart de Poblet":[39.481,-0.444],"Torrent":[39.437,-0.465],"Picanya":[39.435,-0.435],"Alfafar":[39.422,-0.390],"Catarroja":[39.403,-0.403],"Sedaví":[39.427,-0.385],"Sagunt":[39.680,-0.278],
  "València · Centro":[39.470,-0.376],"Benicalap":[39.494,-0.398],"Benimaclet":[39.487,-0.358],"Algirós":[39.476,-0.350],"Poblats Marítims":[39.465,-0.327],"Cabanyal":[39.470,-0.330],
  "Patraix":[39.459,-0.395],"Quatre Carreres":[39.448,-0.370],"Campanar":[39.484,-0.400],"Ruzafa":[39.462,-0.374],"Pobles del Sud":[39.427,-0.385],"L'Eixample":[39.463,-0.370],"Extramurs":[39.469,-0.387]};
+var DISTRITOS=["València · Centro","Benicalap","Benimaclet","Algirós","Poblats Marítims","Cabanyal","Patraix","Quatre Carreres","Campanar","Ruzafa","Pobles del Sud","L'Eixample","Extramurs"];
+var MAS_PUEBLOS={"València":[39.470,-0.376],"Xirivella":[39.463,-0.427],"Aldaia":[39.464,-0.462],"Alaquàs":[39.456,-0.461],"Paiporta":[39.428,-0.418],"Benetússer":[39.423,-0.397],"Massanassa":[39.411,-0.398],"Albal":[39.397,-0.415],"Silla":[39.362,-0.411],"Picassent":[39.363,-0.459],"Foios":[39.538,-0.357],"Tavernes Blanques":[39.507,-0.364],"Vinalesa":[39.540,-0.367],"Alfara del Patriarca":[39.544,-0.385],"Museros":[39.565,-0.343],"Rafelbunyol":[39.592,-0.334],"Llíria":[39.626,-0.596],"Benaguasil":[39.594,-0.586]};
+Object.keys(MAS_PUEBLOS).forEach(function(k){GEO[k]=MAS_PUEBLOS[k];});
+var PUEBLOS=Object.keys(GEO).filter(function(k){return DISTRITOS.indexOf(k)<0;}).sort(function(a,b){return a==="València"?-1:b==="València"?1:a.localeCompare(b,"es");});
 var ZGEO={"Camp de Túria":"L'Eliana","L'Horta Nord":"Meliana","L'Horta Oest":"Paterna","L'Horta Sud":"Catarroja","Camp de Morvedre":"Sagunt"};
 var RADIOS=[5,10,15,25,40];
 function clubLL(c){if(c.ll)return c.ll;var b=GEO[c.t]||GEO[c.z]||GEO[ZGEO[c.z]]||GEO["València · Centro"],i=CLUBES.indexOf(c);if(i<0)i=7;
@@ -432,8 +436,8 @@ function geoFromClubs(ids){var ll=ids.map(function(id){return clubLL(club(id));}
 function nearPicker(o,key,ck){var head='<div class="field" id="clubs_'+key+'"><label>¿Dónde quieres jugar?</label>';
  if(!o.geo)return head+'<p class="small muted">Te enseñamos los clubes que tienes cerca y eliges en cuáles te va bien jugar.</p>'+
   '<button class="btn btn-ink" data-act="geo" data-k="'+key+'" style="margin-top:4px">📍 Buscar clubes cerca de mí</button>'+
-  '<p class="small muted" style="text-align:center;margin:6px 0 2px">o elige tu pueblo o barrio</p><select class="input" data-geosel="'+key+'"><option value="">Elige…</option>'+
-  Object.keys(GEO).sort(function(a,b){return a.localeCompare(b,"es");}).map(function(n){return '<option>'+esc(n)+'</option>';}).join("")+'</select></div>';
+  '<p class="small muted" style="text-align:center;margin:6px 0 2px">o elige tu pueblo o ciudad</p><select class="input" data-geosel="'+key+'"><option value="">Elige…</option>'+
+  PUEBLOS.map(function(n){return '<option>'+esc(n)+'</option>';}).join("")+'</select></div>';
  var rad=o.radius||10,list=nearClubs(o.geo,rad),nsel=list.filter(function(x){return o.clubs.indexOf(x.c.id)>-1;}).length,next=RADIOS.filter(function(r){return r>rad;})[0];
  return head+'<div class="row between" style="background:var(--soft);border-radius:12px;padding:8px 12px"><span class="small">📍 Cerca de <b>'+esc(o.geo.label)+'</b></span><button class="link small" data-act="geoclear" data-k="'+key+'">Cambiar</button></div>'+
   '<p class="small" style="font-weight:700;margin-top:6px">¿Hasta qué distancia?</p><div class="chips">'+RADIOS.slice(0,4).map(function(r){return '<button class="chip" data-set="'+key+'rad" data-v="'+r+'" aria-pressed="'+(rad===r)+'">'+r+' km</button>';}).join("")+(rad===40?'<button class="chip" aria-pressed="true" data-set="'+key+'rad" data-v="40">40 km</button>':'')+'</div>'+
@@ -824,7 +828,7 @@ function regError(){var r=reg;
  if(regStep===0){var ph=normPhone(r.phone);if(!/^[67]\d{8}$/.test(ph))return "Escribe un móvil español de 9 cifras.";if(S.accounts[ph])return "Ya hay una cuenta con ese teléfono. Inicia sesión.";if((r.pass||"").length<6)return "La contraseña necesita al menos 6 caracteres.";}
  if(regStep===1){if(!r.first||!r.last)return "Escribe tu nombre y apellido.";if(!(+r.age>=18))return "Tienes que ser mayor de 18 años.";}
  if(regStep===2){if(!r.lmode)return "Dinos si tienes nivel en Playtomic o haz el cuestionario.";if(r.lmode==="pt"&&!r.pt)return "Elige tu nivel de Playtomic.";if(!r.lvl)return "Responde las 7 preguntas para calcular tu nivel.";if(!r.freq)return "Dinos cada cuánto quieres jugar.";if(!r.tipo)r.tipo="indiferente";}
- if(regStep===3){if(!r.geo)return ["Dinos dónde juegas: usa tu ubicación o elige tu pueblo.","clubs_r"];if(!(r.clubs||[]).length)return ["Elige al menos un club.","clubs_r"];if(!(r.dows||[]).length)return ["Elige al menos un día.","days_r"];if(!(r.to>r.from))return ["Elige a qué horas puedes jugar.","hrs_r"];if(!(r.to-r.from>=90))return ["Marca al menos 1 h 30 min seguidas: es lo que dura una partida.","hrs_r"];}
+ if(regStep===3){if(!r.geo)return ["Dinos dónde juegas: usa tu ubicación o elige tu pueblo o ciudad.","clubs_r"];if(!(r.clubs||[]).length)return ["Elige al menos un club.","clubs_r"];if(!(r.dows||[]).length)return ["Elige al menos un día.","days_r"];if(!(r.to>r.from))return ["Elige a qué horas puedes jugar.","hrs_r"];if(!(r.to-r.from>=90))return ["Marca al menos 1 h 30 min seguidas: es lo que dura una partida.","hrs_r"];}
  return "";}
 function sendCode(){grabReg();var ph=normPhone(reg.phone),el=document.getElementById("regerr");
  if(!/^[67]\d{8}$/.test(ph)){el.textContent="Escribe un móvil español de 9 cifras.";el.hidden=false;return;}
