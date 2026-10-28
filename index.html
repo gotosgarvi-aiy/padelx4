@@ -143,6 +143,7 @@ input,select,textarea{font-size:16px!important}
 .steps i.on{background:var(--ink)}
 .notice{font-size:12px;color:var(--muted);text-align:center}
 hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.needs{outline:2.5px solid var(--danger);outline-offset:6px;border-radius:14px;transition:outline-color .3s}
 </style>
 
 <div class="app" id="app"></div>
@@ -372,8 +373,8 @@ function viewRegistro(){var r=reg,st=regStep,h="";
   '<div class="field"><label>Tu nivel</label><div class="seg" role="group"><button data-set="lmode" data-v="pt" aria-pressed="'+(r.lmode==="pt")+'">Tengo nivel en Playtomic</button><button data-set="lmode" data-v="quiz" aria-pressed="'+(r.lmode==="quiz")+'">No sé mi nivel</button></div></div>'+levelBody(r)+'<div class="field"><label>¿Cada cuánto quieres jugar?</label><div class="chips">'+["1 vez por semana","2 o más por semana","Cuando surja"].map(function(f){return chip("freq",f,r.freq===f);}).join("")+'</div></div>'+
   '<div class="field"><label>Tipo de partida</label><div class="chips">'+["indiferente","mixta","femenina","masculina"].map(function(f){return chip("tipo",f,r.tipo===f);}).join("")+'</div></div></div>';
  if(st===3)h='<h1 style="margin-top:18px">Dónde y cuándo</h1><div class="stack" style="margin-top:18px">'+
-  zonePicker(r.zones||[],r.clubs||[],"zone","rclub")+
-  '<div class="field"><label>Disponibilidad habitual</label><div class="chips">'+[1,2,3,4,5,6,0].map(function(d){return chip("dow",DOW[d],(r.dows||[]).indexOf(d)>-1,d);}).join("")+'</div></div>'+
+  nearPicker(r,"r","rclub")+
+  '<div class="field" id="days_r"><label>Disponibilidad habitual</label><div class="chips">'+[1,2,3,4,5,6,0].map(function(d){return chip("dow",DOW[d],(r.dows||[]).indexOf(d)>-1,d);}).join("")+'</div></div>'+
   hourPicker(r.from,r.to,"r")+'</div>';
  if(st===4)h='<h1 style="margin-top:18px">Sobre mí</h1><p class="muted" style="margin-top:6px">Opcional. Ayuda a que te propongan partidas que te encajan.</p>'+
   '<textarea class="input" id="r_about" rows="5" maxlength="200" style="margin-top:16px;resize:none" placeholder="Busco jugar un día a la semana, entre lunes y jueves, de 18:30 a 20:30 por el Camp de Túria. Me apunto también a las cervezas de después.">'+esc(r.about||"")+'</textarea>'+
@@ -409,6 +410,40 @@ function chip(k,v,on,val){return '<button class="chip" data-set="'+k+'" data-v="
 function clubPicker(zones,clubs,key){var list=CLUBES.filter(function(c){return zones.indexOf(c.z)>-1;});
  return '<div class="field"><label>Clubes donde quieres jugar</label>'+(zones.length?(list.length?'<div class="chips">'+list.map(function(c){return '<button class="chip lime" data-set="'+key+'" data-v="'+c.id+'" aria-pressed="'+(clubs.indexOf(c.id)>-1)+'">'+esc(c.n)+'</button>';}).join("")+'</div>':'<p class="small muted">Aún no tenemos clubes en estas zonas.</p>')+
   '<button class="link small" style="align-self:flex-start;margin-top:4px" data-act="addclub" data-k="'+key+'">¿No ves tu club? Añádelo</button>':'<p class="small muted">Elige primero una zona.</p>')+'</div>';}
+/* Clubes cerca de ti: ubicación + radio */
+var GEO={"Bétera":[39.591,-0.462],"San Antonio de Benagéber":[39.561,-0.497],"L'Eliana":[39.566,-0.528],"Pobla de Vallbona":[39.588,-0.554],"Riba-roja de Túria":[39.546,-0.567],
+ "Puçol":[39.617,-0.304],"Massamagrell":[39.570,-0.330],"Pobla de Farnals":[39.565,-0.287],"El Puig":[39.588,-0.304],"Meliana":[39.528,-0.349],"Alboraya":[39.500,-0.352],
+ "Moncada":[39.545,-0.396],"Godella":[39.520,-0.411],"Rocafort":[39.530,-0.410],"Burjassot":[39.509,-0.413],"Paterna":[39.502,-0.440],"Manises":[39.493,-0.463],"Mislata":[39.475,-0.418],
+ "Quart de Poblet":[39.481,-0.444],"Torrent":[39.437,-0.465],"Picanya":[39.435,-0.435],"Alfafar":[39.422,-0.390],"Catarroja":[39.403,-0.403],"Sedaví":[39.427,-0.385],"Sagunt":[39.680,-0.278],
+ "València · Centro":[39.470,-0.376],"Benicalap":[39.494,-0.398],"Benimaclet":[39.487,-0.358],"Algirós":[39.476,-0.350],"Poblats Marítims":[39.465,-0.327],"Cabanyal":[39.470,-0.330],
+ "Patraix":[39.459,-0.395],"Quatre Carreres":[39.448,-0.370],"Campanar":[39.484,-0.400],"Ruzafa":[39.462,-0.374],"Pobles del Sud":[39.427,-0.385],"L'Eixample":[39.463,-0.370],"Extramurs":[39.469,-0.387]};
+var ZGEO={"Camp de Túria":"L'Eliana","L'Horta Nord":"Meliana","L'Horta Oest":"Paterna","L'Horta Sud":"Catarroja","Camp de Morvedre":"Sagunt"};
+var RADIOS=[5,10,15,25,40];
+function clubLL(c){if(c.ll)return c.ll;var b=GEO[c.t]||GEO[c.z]||GEO[ZGEO[c.z]]||GEO["València · Centro"],i=CLUBES.indexOf(c);if(i<0)i=7;
+ c.ll=[b[0]+((i*37)%9-4)*0.0012,b[1]+((i*53)%9-4)*0.0014];return c.ll;}
+function kmTo(a,b){var R=6371,r=Math.PI/180,dl=(b[0]-a[0])*r,dg=(b[1]-a[1])*r,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dg/2)*Math.sin(dg/2);return 2*R*Math.asin(Math.sqrt(x));}
+function nearClubs(geo,rad){return CLUBES.map(function(c){return {c:c,d:kmTo([geo.lat,geo.lng],clubLL(c))};}).filter(function(x){return x.d<=rad;}).sort(function(a,b){return a.d-b.d;});}
+function syncZones(o){var z=[];(o.clubs||[]).forEach(function(id){var k=club(id).z;if(k&&z.indexOf(k)<0)z.push(k);});o.zones=z;}
+function setGeo(o,geo){o.geo=geo;o.radius=o.radius||10;var n=nearClubs(geo,o.radius);while(!n.length&&o.radius<40){o.radius=RADIOS[RADIOS.indexOf(o.radius)+1]||40;n=nearClubs(geo,o.radius);}o.clubs=n.map(function(x){return x.c.id;});syncZones(o);}
+function setRadius(o,rad){var old=o.radius||10;o.radius=rad;var inR=nearClubs(o.geo,rad).map(function(x){return x.c.id;});
+ if(rad>old){inR.forEach(function(id){if(o.clubs.indexOf(id)<0&&!nearClubs(o.geo,old).some(function(x){return x.c.id===id;}))o.clubs.push(id);});}
+ else o.clubs=o.clubs.filter(function(id){return inR.indexOf(id)>-1;});syncZones(o);}
+function geoFromClubs(ids){var ll=ids.map(function(id){return clubLL(club(id));});if(!ll.length)return null;var a=0,b=0;ll.forEach(function(x){a+=x[0];b+=x[1];});return {lat:a/ll.length,lng:b/ll.length,label:"tus clubes de siempre"};}
+function nearPicker(o,key,ck){var head='<div class="field" id="clubs_'+key+'"><label>¿Dónde quieres jugar?</label>';
+ if(!o.geo)return head+'<p class="small muted">Te enseñamos los clubes que tienes cerca y eliges en cuáles te va bien jugar.</p>'+
+  '<button class="btn btn-ink" data-act="geo" data-k="'+key+'" style="margin-top:4px">📍 Buscar clubes cerca de mí</button>'+
+  '<p class="small muted" style="text-align:center;margin:6px 0 2px">o elige tu pueblo o barrio</p><select class="input" data-geosel="'+key+'"><option value="">Elige…</option>'+
+  Object.keys(GEO).sort(function(a,b){return a.localeCompare(b,"es");}).map(function(n){return '<option>'+esc(n)+'</option>';}).join("")+'</select></div>';
+ var rad=o.radius||10,list=nearClubs(o.geo,rad),nsel=list.filter(function(x){return o.clubs.indexOf(x.c.id)>-1;}).length,next=RADIOS.filter(function(r){return r>rad;})[0];
+ return head+'<div class="row between" style="background:var(--soft);border-radius:12px;padding:8px 12px"><span class="small">📍 Cerca de <b>'+esc(o.geo.label)+'</b></span><button class="link small" data-act="geoclear" data-k="'+key+'">Cambiar</button></div>'+
+  '<p class="small" style="font-weight:700;margin-top:6px">¿Hasta qué distancia?</p><div class="chips">'+RADIOS.slice(0,4).map(function(r){return '<button class="chip" data-set="'+key+'rad" data-v="'+r+'" aria-pressed="'+(rad===r)+'">'+r+' km</button>';}).join("")+(rad===40?'<button class="chip" aria-pressed="true" data-set="'+key+'rad" data-v="40">40 km</button>':'')+'</div>'+
+  '<div class="daybox" style="margin-top:6px"><div class="row between"><b class="small">'+(list.length===1?'1 club':list.length+' clubes')+' a menos de '+rad+' km</b><span class="small muted">'+nsel+' elegido'+(nsel===1?'':'s')+'</span></div>'+
+  (list.length?'<p class="small muted" style="margin-top:4px">Los hemos marcado todos. Quita los que no te vengan bien.</p><div class="chips" style="margin-top:8px">'+list.map(function(x){var k=x.c;return '<button class="chip lime" data-set="'+ck+'" data-v="'+k.id+'" aria-pressed="'+(o.clubs.indexOf(k.id)>-1)+'">'+esc(k.n)+' <span style="font-weight:500;opacity:.65">· '+x.d.toFixed(1).replace(".",",")+' km</span></button>';}).join("")+'</div>':'<p class="small muted" style="margin-top:6px">No hay clubes tan cerca.</p>')+
+  (next?'<button class="btn btn-ghost btn-sm" style="margin-top:10px" data-set="'+key+'rad" data-v="'+next+'">Encontrar más clubes (hasta '+next+' km)</button>':'')+
+  '<button class="link small" style="display:block;margin-top:10px" data-act="addclub" data-k="'+ck+'">¿No ves tu club? Añádelo</button></div></div>';}
+function geoObj(k){return k==="r"?reg:S.searchDraft;}
+function showErr(pid,msg,anchor){var el=document.getElementById(pid);if(el){el.textContent=msg;el.hidden=false;}toast(msg);var an=anchor&&document.getElementById(anchor);
+ if(an){an.scrollIntoView({behavior:"smooth",block:"center"});an.classList.add("needs");setTimeout(function(){an.classList.remove("needs");},2600);}}
 /* Zonas que despliegan sus clubes */
 function zonePicker(zones,clubs,zk,ck){
  return '<div class="field"><label>Zonas y clubes donde juegas</label><p class="small muted">Al tocar una zona se marcan todos sus clubes. Desmarca los que no te vengan bien.</p>'+COMARCAS.map(function(c){
@@ -420,7 +455,7 @@ function zonePicker(zones,clubs,zk,ck){
      '<button class="link small" style="margin-top:8px" data-act="addclub" data-k="'+ck+'" data-z="'+esc(z)+'">¿No encuentras tu club en '+esc(z)+'? Añádelo</button></div>';}).join("");}).join("")+'</div>';}
 /* Selector de horas: franjas que despliegan bloques de 30 min */
 function hourPicker(from,to,key){from=from||0;to=to||0;
- return '<div class="field"><label>Horario</label><div class="stack" style="gap:8px">'+FRANJAS.map(function(f){
+ return '<div class="field" id="hrs_'+key+'"><label>¿A qué horas?</label>'+(to>from?'':'<p class="small" style="color:var(--danger);font-weight:600">Elige tus horas: toca una franja, por ejemplo «Tarde».</p>')+'<div class="stack" style="gap:8px">'+FRANJAS.map(function(f){
   var sel=[];for(var m=f[1];m<f[2];m+=30)if(m>=from&&m<to)sel.push(m);var open=sel.length>0;
   var blocks="";for(var m2=f[1];m2<f[2];m2+=30)blocks+='<button class="chip half" data-set="'+key+'h" data-v="'+m2+'" aria-pressed="'+(m2>=from&&m2<to)+'">'+hm(m2)+'</button>';
   return '<div class="daybox'+(open?"":" off")+'"><div class="row between"><button class="chip" data-set="'+key+'f" data-v="'+f[1]+'-'+f[2]+'" aria-pressed="'+open+'">'+f[0]+' · '+hm(f[1])+'–'+hm(f[2])+'</button>'+(open?'<span class="small muted">'+hm(sel[0])+'–'+hm(sel[sel.length-1]+30)+'</span>':'')+'</div>'+(open?'<div class="chips" style="margin-top:8px">'+blocks+'</div>':'')+'</div>';}).join("")+
@@ -434,7 +469,7 @@ function toggleFranja(obj,a,b){a=+a;b=+b;var from=obj.from||0,to=obj.to||0;
  else if(to>from){obj.from=Math.min(from,a);obj.to=Math.max(to,b);} else {obj.from=a;obj.to=b;}}
 
 /* Busco partida */
-function viewBusco(){var s=S.search||defaultSearch(),me=S.me;S.searchDraft=S.searchDraft||JSON.parse(JSON.stringify(s));var d=S.searchDraft;if(!d.zones)d.zones=me.zones.slice();
+function viewBusco(){var s=S.search||defaultSearch(),me=S.me;S.searchDraft=S.searchDraft||JSON.parse(JSON.stringify(s));var d=S.searchDraft;if(!d.zones)d.zones=me.zones.slice();if(!d.geo){d.geo=me.geo||geoFromClubs(d.clubs);d.radius=me.radius||15;}
  var MES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
  var months=[];DAYS.forEach(function(x){var mk=x.key.slice(0,7);if(months.indexOf(mk)<0)months.push(mk);});
  if(calIdx>months.length-1)calIdx=months.length-1;var cm=months[calIdx],y=+cm.slice(0,4),mo=+cm.slice(5,7);
@@ -457,8 +492,8 @@ function viewBusco(){var s=S.search||defaultSearch(),me=S.me;S.searchDraft=S.sea
   else if(p.kind==="invitado"){body='<div class="row">'+fieldI("pn"+i,"Nombre",p.name)+'</div><div class="chips">'+["mujer","hombre"].map(function(g){return '<button class="chip" data-set="pg" data-i="'+i+'" data-v="'+g+'" aria-pressed="'+(p.g===g)+'">'+g+'</button>';}).join("")+'</div>'+
    '<div class="row" style="align-items:flex-start">'+fieldI("pa"+i,"Edad",p.age,"number")+'<div class="field" style="flex:1"><label for="pl'+i+'">Nivel</label><select class="input" id="pl'+i+'">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(+p.lvl===n?" selected":"")+'>'+n+' · '+NIVELES[n][0]+'</option>';}).join("")+'</select></div></div>';}
   return '<div class="daybox stack" style="gap:8px">'+head+body+'</div>';}).join("")+'</div>'+
- '<div class="card stack"><h3>¿Dónde?</h3>'+zonePicker(d.zones,d.clubs,"szone","sclub")+'</div>'+
- '<div class="card stack"><h3>¿Cuándo?</h3><div class="field"><label>Días</label>'+dayChips+'</div>'+hourPicker(d.from,d.to,"s")+'</div>'+
+ '<div class="card stack">'+nearPicker(d,"s","sclub")+'</div>'+
+ '<div class="card stack"><h3>¿Cuándo?</h3><div class="field" id="days_s"><label>Días</label>'+dayChips+'</div>'+hourPicker(d.from,d.to,"s")+'</div>'+
  '<label class="row small" style="font-weight:600"><input type="checkbox" id="savepref"> Guardar como mis preferencias</label>'+
  '</div><p id="serr" class="small" style="color:var(--danger);margin-top:10px" hidden></p></div>'+
  '<div style="position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-block:12px calc(12px + env(safe-area-inset-bottom,0px))"><div class="wrap" style="max-width:440px;margin:0 auto" ><div class="row">'+(S.search?'<button class="btn btn-ghost" style="flex:1" data-act="cancelbusco">Cancelar</button>':'')+'<button class="btn btn-ink" style="flex:2" data-act="verjug">Ver jugadores</button></div></div></div>';}
@@ -656,16 +691,21 @@ document.addEventListener("click",function(e){var t=e.target.closest("[data-tab]
  if(a==="habyes"||a==="habno"){S.habitual=a==="habyes";save();closeSheet();toast("Gracias, lo tendremos en cuenta");return;}
  if(a==="ejemplo"){S.me=exampleMe();S.view="busco";S.searchDraft=null;save();render();}
  else if(a==="regback"){if(S.view==="editar"){S.view="app";tab="perfil";}else if(regStep===0){S.view="home";}else{grabReg();regStep--;}render();window.scrollTo(0,0);}
- else if(a==="regnext"){grabReg();var err=regError();var el=document.getElementById("regerr");if(err==="SENDCODE"){sendCode();return;}if(err){el.textContent=err;el.hidden=false;return;}
+ else if(a==="regnext"){grabReg();var err=regError();var el=document.getElementById("regerr");if(err==="SENDCODE"){sendCode();return;}if(err){if(typeof err==="string")err=[err];showErr("regerr",err[0],err[1]);return;}
   if(S.view==="editar")finishReg();else if(regStep<4){regStep++;render();window.scrollTo(0,0);}else finishReg();}
+ else if(a==="geo"){var gk=t.dataset.k;if(!navigator.geolocation){toast("Tu navegador no deja ver la ubicación. Elige tu pueblo o barrio.");return;}t.disabled=true;t.textContent="Buscando tu ubicación…";
+  navigator.geolocation.getCurrentPosition(function(pos){var o=geoObj(gk);if(!o)return;var g={lat:pos.coords.latitude,lng:pos.coords.longitude,label:"tu ubicación"};
+   if(!nearClubs(g,40).length){g={lat:GEO["València · Centro"][0],lng:GEO["València · Centro"][1],label:"València"};toast("Estás lejos de Valencia: te enseñamos los clubes de València.");}
+   setGeo(o,g);render();},function(){toast("No hemos podido ver tu ubicación. Elige tu pueblo o barrio.");render();},{timeout:9000,maximumAge:600000});}
+ else if(a==="geoclear"){var go2=geoObj(t.dataset.k);go2.geo=null;go2.clubs=[];go2.zones=[];render();}
  else if(a==="addclub"){sheet('<form id="clubf" class="stack" data-k="'+t.dataset.k+'"><h2>Añade tu club</h2><div class="field"><label for="cn">Nombre del club</label><input class="input" id="cn" required></div><div class="field"><label for="ct">Pueblo o barrio</label><input class="input" id="ct"></div><div class="field"><label for="cz">Zona</label><select class="input" id="cz">'+COMARCAS.map(function(c){return c.z.map(function(z){return '<option'+(z===t.dataset.z?' selected':'')+'>'+esc(z)+'</option>';}).join("");}).join("")+'</select></div><button class="btn btn-ink" type="submit">Añadir</button><button class="btn btn-ghost" type="button" data-act="closesheet">Cancelar</button></form>');}
  else if(a==="verjug"){grabSearch();var d=S.searchDraft,er="";
-  if(!d.days.length)er="Elige al menos un día.";else if(!(d.to-d.from>=90))er="Elige al menos 90 minutos seguidos.";else if(!d.clubs.length)er="Elige al menos un club.";
+  var an="";if(!d.clubs.length){er="Elige al menos un club.";an="clubs_s";}else if(!d.days.length){er="Elige al menos un día.";an="days_s";}else if(!(d.to>d.from)){er="Elige a qué horas puedes jugar.";an="hrs_s";}else if(!(d.to-d.from>=90)){er="Marca al menos 1 h 30 min seguidas: es lo que dura una partida.";an="hrs_s";}
   else if(d.partners.some(function(p){return !p.kind;}))er="Dinos si tus compañeros tienen cuenta en X4.";
   else if(d.partners.some(function(p){return p.kind==="cuenta"&&!p.pid;}))er="Elige a tu compañero/a de la lista.";
   else if(d.partners.some(function(p){return p.kind==="invitado"&&(!p.name||!p.g||!p.age);}))er="Completa nombre, género y edad de tus compañeros sin cuenta.";
-  if(er){var se=document.getElementById("serr");se.textContent=er;se.hidden=false;return;}
-  d.slots=minusBusy(buildSlots(d));if(!playable(d.slots).length){var se2=document.getElementById("serr");se2.textContent="Esos días y horas ya los tienes ocupados con otra partida. Elige otros.";se2.hidden=false;return;}S.search=d;if(document.getElementById("savepref").checked){S.me.clubs=d.clubs.slice();S.me.from=d.from;S.me.to=d.to;}
+  if(er){showErr("serr",er,an);return;}
+  d.slots=minusBusy(buildSlots(d));if(!playable(d.slots).length){var se2=document.getElementById("serr");se2.textContent="Esos días y horas ya los tienes ocupados con otra partida. Elige otros.";se2.hidden=false;return;}S.search=d;if(document.getElementById("savepref").checked){S.me.clubs=d.clubs.slice();syncZones(S.me);S.me.geo=d.geo;S.me.radius=d.radius;S.me.from=d.from;S.me.to=d.to;}
   S.searchDraft=null;S.view="app";tab="jugadores";save();render();window.scrollTo(0,0);}
  else if(a==="editbusco"){S.view="busco";S.searchDraft=null;render();window.scrollTo(0,0);}
  else if(a==="cancelbusco"){S.view="app";S.searchDraft=null;render();}
@@ -714,7 +754,7 @@ document.addEventListener("click",function(e){var t=e.target.closest("[data-tab]
  else if(a==="dquick"){grabSearch();var dq=S.searchDraft,v=t.dataset.v,tw=twoWeeks(),fs=DAYS.findIndex(function(y){return y.dow===0;})+1,taken=closedGames().map(function(g){return g.final.day;});
   var pick=function(f){return DAYS.filter(function(x,i){return f(x,i)&&taken.indexOf(x.key)<0;}).map(function(x){return x.key;});};
   if(v==="semana")dq.days=pick(function(x,i){return i<fs;});else if(v==="siguiente")dq.days=pick(function(x,i){return i>=fs&&i<tw;});else if(v==="habituales"){var cmk=(function(){var ms=[];DAYS.forEach(function(x){var mk=x.key.slice(0,7);if(ms.indexOf(mk)<0)ms.push(mk);});return ms[Math.min(calIdx,ms.length-1)];})();dq.days=dq.days.filter(function(k){return k.slice(0,7)!==cmk;}).concat(pick(function(x){return x.key.slice(0,7)===cmk&&S.me.dows.indexOf(x.dow)>-1;}));}else dq.days=[];render();}
- else if(a==="editperfil"){var m2=S.me;reg={lmode:m2.playtomic?"pt":"quiz",phone:m2.phone,first:m2.first,last:m2.last,age:m2.age,g:m2.g,lvl:m2.lvl,pt:m2.playtomic,freq:m2.freq,tipo:m2.tipo,zones:m2.zones.slice(),clubs:m2.clubs.slice(),dows:m2.dows.slice(),from:m2.from,to:m2.to,about:m2.about,wa:m2.notif?m2.notif.wa:true,sms:m2.notif?m2.notif.sms:false};regStep=+t.dataset.step||1;S.view="editar";render();window.scrollTo(0,0);}
+ else if(a==="editperfil"){var m2=S.me;reg={lmode:m2.playtomic?"pt":"quiz",phone:m2.phone,first:m2.first,last:m2.last,age:m2.age,g:m2.g,lvl:m2.lvl,pt:m2.playtomic,freq:m2.freq,tipo:m2.tipo,zones:m2.zones.slice(),clubs:m2.clubs.slice(),geo:m2.geo||geoFromClubs(m2.clubs),radius:m2.radius||15,dows:m2.dows.slice(),from:m2.from,to:m2.to,about:m2.about,wa:m2.notif?m2.notif.wa:true,sms:m2.notif?m2.notif.sms:false};regStep=+t.dataset.step||1;S.view="editar";render();window.scrollTo(0,0);}
  else if(a==="paycourt"){sheet('<div class="stack"><span class="demo" style="align-self:flex-start">Pago simulado</span><h2>Depositar 1 €</h2><dl class="kv"><dt>Partida</dt><dd>'+esc(runText(groupById(id).final))+'</dd><dt>Club</dt><dd>'+esc(club(groupById(id).club||groupById(id).clubs[0]).n)+'</dd><dt>Depositas</dt><dd><b>1 €</b> para gestionar la reserva</dd><dt>En el club</dt><dd>Tu parte de la pista, al llegar</dd></dl><p class="small muted">No se devuelve. Si al final no hay pista y no os encaja ninguna alternativa, queda como saldo para otras partidas.</p><button class="btn btn-ink" data-act="payok" data-id="'+id+'">Pagar con Apple Pay</button><button class="btn btn-ghost" data-act="payok" data-id="'+id+'">Pagar con tarjeta</button></div>');}
  else if(a==="payok"){var gp=groupById(id);gp.court={status:"depositando",paid:1};save();closeSheet();toast("Depósito hecho. Esperamos al resto.");render();fire("simdep",id,3000);}
  else if(a==="simdep"){var gq=groupById(id);if(!gq||!gq.court||gq.court.status!=="depositando")return;gq.court={status:"validando",msg:"Hola, somos 4 jugadores de X4. ¿Tenéis pista el "+runPhrase(gq.final)+"? Gracias."};save();toast("Ya estáis los 4. El agente ha escrito al club.");render();fire("clubyes",id,4000);}
@@ -756,7 +796,7 @@ function onSet(t){var k=t.dataset.set,v=t.dataset.v;
   if(k==="g"||k==="freq"||k==="tipo")r[k]=v;else if(k==="lvl")r.lvl=+v;
   else if(k==="lmode"){r.lmode=v;if(v==="pt"){r.quiz=null;}else{r.pt="";}}
   else if(k==="quiz"){r.quiz=r.quiz||Array(QUIZ.length).fill(null);r.quiz[+t.dataset.i]=+v;if(r.quiz.every(function(x){return x!=null;})){var sc=r.quiz.reduce(function(a,b){return a+b;},0);r.lvl=sc<=2?1:sc<=5?2:sc<=8?3:sc<=11?4:5;}}
-  else if(k==="zone"){r.zones=tog(r.zones||[],v);r.clubs=(r.clubs||[]).filter(function(c){return club(c).z!==v;});if(r.zones.indexOf(v)>-1)r.clubs=r.clubs.concat(clubsOf(v));}else if(k==="rclub"){r.clubs=tog(r.clubs||[],v);}
+  else if(k==="zone"){r.zones=tog(r.zones||[],v);r.clubs=(r.clubs||[]).filter(function(c){return club(c).z!==v;});if(r.zones.indexOf(v)>-1)r.clubs=r.clubs.concat(clubsOf(v));}else if(k==="rclub"){r.clubs=tog(r.clubs||[],v);syncZones(r);}else if(k==="rrad"){setRadius(r,+v);}
   else if(k==="dow"){r.dows=tog(r.dows||[],+v);}else if(k==="rh")toggleHour(r,v);else if(k==="rf"){var ab=v.split("-");toggleFranja(r,ab[0],ab[1]);}
   render();return;}
  grabSearch();var d=S.searchDraft;
@@ -765,7 +805,7 @@ function onSet(t){var k=t.dataset.set,v=t.dataset.v;
  else if(k==="pkind"){var pp=d.partners[+t.dataset.i];pp.kind=v;pp.pid=null;if(v==="invitado"){pp.name="";pp.lvl=S.me.lvl;}}
  else if(k==="ppick"){var pq=d.partners[+t.dataset.i];pq.pid=v||null;if(v){var pl3=player(v);pq.name=pl3.name+" "+pl3.ini;pq.lvl=pl3.lvl;pq.g=pl3.g;pq.age=pl3.age;}}
  else if(k==="szone"){d.zones=tog(d.zones,v);d.clubs=d.clubs.filter(function(c){return club(c).z!==v;});if(d.zones.indexOf(v)>-1)d.clubs=d.clubs.concat(clubsOf(v));}
- else if(k==="sclub"){d.clubs=tog(d.clubs,v);}else if(k==="sday"){d.days=tog(d.days,v);}
+ else if(k==="sclub"){d.clubs=tog(d.clubs,v);syncZones(d);}else if(k==="srad"){setRadius(d,+v);}else if(k==="sday"){d.days=tog(d.days,v);}
  else if(k==="sh")toggleHour(d,v);else if(k==="sf"){var ab2=v.split("-");toggleFranja(d,ab2[0],ab2[1]);}
  render();}
 function tog(arr,v){var i=arr.indexOf(v);if(i>-1)arr.splice(i,1);else arr.push(v);return arr;}
@@ -778,22 +818,22 @@ function regError(){var r=reg;
  if(regStep===0){var ph=normPhone(r.phone);if(!/^[67]\d{8}$/.test(ph))return "Escribe un móvil español de 9 cifras.";if(S.accounts[ph])return "Ya hay una cuenta con ese teléfono. Inicia sesión.";if((r.pass||"").length<6)return "La contraseña necesita al menos 6 caracteres.";}
  if(regStep===1){if(!r.first||!r.last)return "Escribe tu nombre y apellido.";if(!(+r.age>=18))return "Tienes que ser mayor de 18 años.";}
  if(regStep===2){if(!r.lmode)return "Dinos si tienes nivel en Playtomic o haz el cuestionario.";if(r.lmode==="pt"&&!r.pt)return "Elige tu nivel de Playtomic.";if(!r.lvl)return "Responde las 7 preguntas para calcular tu nivel.";if(!r.freq)return "Dinos cada cuánto quieres jugar.";if(!r.tipo)r.tipo="indiferente";}
- if(regStep===3){if(!(r.zones||[]).length)return "Elige al menos una zona.";if(!(r.dows||[]).length)return "Elige al menos un día.";if(!(r.to-r.from>=90))return "Elige al menos 90 minutos seguidos.";}
+ if(regStep===3){if(!r.geo)return ["Dinos dónde juegas: usa tu ubicación o elige tu pueblo.","clubs_r"];if(!(r.clubs||[]).length)return ["Elige al menos un club.","clubs_r"];if(!(r.dows||[]).length)return ["Elige al menos un día.","days_r"];if(!(r.to>r.from))return ["Elige a qué horas puedes jugar.","hrs_r"];if(!(r.to-r.from>=90))return ["Marca al menos 1 h 30 min seguidas: es lo que dura una partida.","hrs_r"];}
  return "";}
 function sendCode(){grabReg();var ph=normPhone(reg.phone),el=document.getElementById("regerr");
  if(!/^[67]\d{8}$/.test(ph)){el.textContent="Escribe un móvil español de 9 cifras.";el.hidden=false;return;}
  if(S.accounts[ph]){el.textContent="Ya hay una cuenta con ese teléfono. Inicia sesión.";el.hidden=false;return;}
  reg.phone=ph;reg.code=String(Math.floor(1000+Math.random()*9000));reg.codeSent=true;reg.codeIn="";render();toast("Código enviado al +34 "+ph);}
 function finishReg(){var r=reg;
- if(S.view==="editar"){var m=S.me;["first","last","g","lvl","freq","tipo","zones","dows","from","to"].forEach(function(k){m[k]=r[k];});m.age=+r.age;m.playtomic=r.pt||"";m.about=r.about||"";m.clubs=(r.clubs||[]).slice();m.notif={wa:r.wa!==false,sms:!!r.sms};
-  if(S.accounts[m.phone])S.accounts[m.phone].me=m;S.view="app";tab="perfil";save();render();window.scrollTo(0,0);toast("Perfil guardado");return;}var me={phone:normPhone(r.phone),notif:{wa:r.wa!==false,sms:!!r.sms},first:r.first,last:r.last,age:+r.age,g:r.g||"prefiero no decirlo",lvl:r.lvl,playtomic:r.pt||"",freq:r.freq,tipo:r.tipo||"indiferente",zones:r.zones,clubs:(r.clubs||[]).slice(),dows:r.dows,from:r.from,to:r.to,about:r.about||"",color:"#D4F44A"};
+ if(S.view==="editar"){var m=S.me;["first","last","g","lvl","freq","tipo","zones","dows","from","to"].forEach(function(k){m[k]=r[k];});m.age=+r.age;m.playtomic=r.pt||"";m.about=r.about||"";m.clubs=(r.clubs||[]).slice();m.geo=r.geo;m.radius=r.radius;m.notif={wa:r.wa!==false,sms:!!r.sms};
+  if(S.accounts[m.phone])S.accounts[m.phone].me=m;S.view="app";tab="perfil";save();render();window.scrollTo(0,0);toast("Perfil guardado");return;}var me={phone:normPhone(r.phone),notif:{wa:r.wa!==false,sms:!!r.sms},first:r.first,last:r.last,age:+r.age,g:r.g||"prefiero no decirlo",lvl:r.lvl,playtomic:r.pt||"",freq:r.freq,tipo:r.tipo||"indiferente",zones:r.zones||[],clubs:(r.clubs||[]).slice(),geo:r.geo,radius:r.radius,dows:r.dows,from:r.from,to:r.to,about:r.about||"",color:"#D4F44A"};
  if(!me.clubs.length)me.clubs=CLUBES.filter(function(c){return me.zones.indexOf(c.z)>-1;}).map(function(c){return c.id;}).slice(0,3);
  S.accounts[me.phone]={pass:r.pass,me:me};S.me=me;S.view="app";tab="inicio";S.searchDraft=null;S.search=autoSearch();save();render();window.scrollTo(0,0);}
 document.addEventListener("input",function(e){if(e.target.id==="fb_lio"||e.target.id==="fb_falta"){fb.lio=val("fb_lio");fb.falta=val("fb_falta");var w=document.getElementById("fbwa");if(w)w.href="https://wa.me/?text="+encodeURIComponent(fbText());return;}var f=e.target.dataset&&e.target.dataset.filter;if(f==null)return;var q=e.target.value.trim().toLowerCase(),box=document.getElementById("pl_"+f),hint=document.getElementById("ph_"+f);if(!box)return;var n=0;
  var norm=function(x){return x.normalize("NFD").replace(/[\u0300-\u036f]/g,"");};
  [].forEach.call(box.children,function(b){var show=q.length>=2&&norm(b.dataset.name).indexOf(norm(q))>-1;b.hidden=!show;if(show)n++;});
  if(hint){hint.hidden=n>0;hint.textContent=q.length<2?"Escribe al menos 2 letras para buscar.":"No encontramos a nadie con ese nombre. Si no tiene cuenta, elige «No tiene cuenta».";}});
-document.addEventListener("change",function(e){if(e.target.id==="r_pt"){grabReg();render();}});
+document.addEventListener("change",function(e){if(e.target.id==="r_pt"){grabReg();render();return;}var gs=e.target.dataset&&e.target.dataset.geosel;if(gs&&e.target.value){var o=geoObj(gs),c=GEO[e.target.value];if(gs==="r")grabReg();else grabSearch();setGeo(o,{lat:c[0],lng:c[1],label:e.target.value});render();}});
 document.addEventListener("submit",function(e){e.preventDefault();var f=e.target;
  if(f.id==="loginf"){var em=normPhone(val("le")),acc=S.accounts[em];var er=document.getElementById("lerr");
   if(!acc){er.textContent="No hay ninguna cuenta con ese teléfono en este dispositivo. Crea una o prueba con el perfil de ejemplo.";er.hidden=false;return;}
@@ -805,6 +845,7 @@ document.addEventListener("submit",function(e){e.preventDefault();var f=e.target
   S.accounts[forgot.phone].pass=val("fpass");save();closeSheet();toast("Contraseña cambiada. Ya puedes entrar.");}
  else if(f.id==="clubf"){var nm=val("cn"),z=val("cz"),tw=val("ct");if(!nm)return;var cid="u"+Date.now(),nc={id:cid,n:nm+" (añadido por ti)",z:z,t:tw};CLUBES.push(nc);
   S.customClubs=(S.customClubs||[]).concat([nc]);
+  var go=f.dataset.k==="rclub"?reg:S.searchDraft;if(go&&go.geo){var dd=kmTo([go.geo.lat,go.geo.lng],clubLL(nc));if(dd>(go.radius||10))go.radius=RADIOS.filter(function(r){return r>=dd;})[0]||40;}
   if(f.dataset.k==="rclub"){reg.clubs=(reg.clubs||[]).concat(cid);if((reg.zones||[]).indexOf(z)<0)reg.zones=(reg.zones||[]).concat(z);}else if(S.searchDraft){S.searchDraft.clubs.push(cid);if(S.searchDraft.zones.indexOf(z)<0)S.searchDraft.zones.push(z);}
   save();closeSheet();render();toast("Club añadido");}
  else if(f.id==="chatf"){var tx=val("chatin");if(!tx)return;var g=groupById(f.dataset.id);g.chat.push({me:true,t:tx});save();render();
