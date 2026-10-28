@@ -1,3 +1,12 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="description" content="Prototipo de Pádel ×4: encuentra jugadores de tu nivel en Valencia.">
+</head>
+<body>
 <title>Pádel ×4</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,6 +61,7 @@ p{margin:0}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-size:13px;font-weight:700}
 .input{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;width:100%}
+input,select,textarea{font-size:16px!important}
 .input:focus{border-color:var(--ink);outline:none}
 .av{flex:none;display:grid;place-items:center;border-radius:50%;font-family:var(--display);font-weight:700;color:var(--ink)}
 .lvl{font-family:var(--display);font-weight:800;font-size:13px;background:var(--ink);color:var(--lime);border-radius:8px;padding:2px 7px;font-variant-numeric:tabular-nums}
@@ -806,3 +816,5 @@ document.addEventListener("submit",function(e){e.preventDefault();var f=e.target
 render();
 })();
 </script>
+</body>
+</html>
