@@ -17,8 +17,8 @@ def overpass(q):
     raise SystemExit("Overpass no responde")
 
 AREA = 'area["ISO3166-1"="ES"][admin_level=2]->.es;'
-clubs_raw = overpass('[out:json][timeout:600];' + AREA + 'nwr["sport"~"padel|paddle_tennis"](area.es);out center tags;')["elements"]
-places_raw = overpass('[out:json][timeout:600];' + AREA + 'node["place"~"^(city|town)$"](area.es);out tags;')["elements"]
+clubs_raw = overpass('[out:json][timeout:600];' + AREA + 'nwr["sport"~"padel|paddle_tennis"](area.es);out center;')["elements"]
+places_raw = overpass('[out:json][timeout:600];' + AREA + 'node["place"~"^(city|town)$"](area.es);out;')["elements"]
 
 def ll(e):
     if "lat" in e: return e["lat"], e["lon"]
