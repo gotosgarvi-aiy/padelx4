@@ -1,2 +1,4 @@
-8440 elementos -> 557 clubes; 970 pueblos y ciudades
+fallo https://overpass-api.de/api/interpreter HTTP Error 504: Gateway Timeout
+fallo https://overpass.kumi.systems/api/interpreter HTTP Error 504: Gateway Timeout
+8440 elementos -> 573 clubes; 970 pueblos y ciudades
 exit=0
