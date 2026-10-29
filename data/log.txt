@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/runner/work/padelx4/padelx4/tools/clubes_es.py", line 61, in <module>
+    if n: places.append([n, round(e["lat"], 4), round(e["lon"], 4), 1 if t.get("place") == "city" else 0])
+                                  ~^^^^^^^
+KeyError: 'lat'
+exit=1
