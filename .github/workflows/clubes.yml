@@ -1,0 +1,19 @@
+name: Actualizar clubes de España
+on:
+  push:
+    paths: ["tools/clubes_es.py", ".github/workflows/clubes.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  clubes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/clubes_es.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/clubes-es.json
+          git commit -m "Clubes de pádel de España desde OpenStreetMap" || echo "Sin cambios"
+          git push
