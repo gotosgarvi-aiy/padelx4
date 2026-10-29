@@ -10,10 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 tools/clubes_es.py
       - run: |
+          mkdir -p data
+          set +e
+          python3 -u tools/clubes_es.py > data/log.txt 2>&1
+          echo "exit=$?" >> data/log.txt
+          tail -40 data/log.txt
+      - if: always()
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/clubes-es.json
+          git add data/
           git commit -m "Clubes de pádel de España desde OpenStreetMap" || echo "Sin cambios"
           git push
